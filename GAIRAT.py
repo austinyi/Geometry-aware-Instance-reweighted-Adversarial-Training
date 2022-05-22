@@ -66,7 +66,7 @@ if args.net == "WRN":
     model = Wide_ResNet_Madry(depth=depth, num_classes=10, widen_factor=width_factor, dropRate=drop_rate).cuda()
     net = "WRN{}-{}-dropout{}".format(depth,width_factor,drop_rate)
 
-model = torch.nn.DataParallel(model)
+#model = torch.nn.DataParallel(model)
 optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=momentum, weight_decay=weight_decay)
 
 # Learning schedules
