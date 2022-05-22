@@ -267,7 +267,7 @@ for epoch in range(start_epoch, args.epochs):
         )
          
     logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
- '''   
+ '''
     # Save the best checkpoint
     if test_pgd20_acc > best_acc:
         best_acc = test_pgd20_acc
