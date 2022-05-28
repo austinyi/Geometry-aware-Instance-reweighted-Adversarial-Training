@@ -108,8 +108,8 @@ elif args.lr_schedule == 'cosine':
         return args.lr_max * 0.5 * (1 + np.cos(t / args.epochs * np.pi))
 
 # Store path
-if not os.path.exists(out_dir):
-    os.makedirs(out_dir)
+#if not os.path.exists(out_dir):
+#    os.makedirs(out_dir)
 
 # Save checkpoint
 def save_checkpoint(state, checkpoint=out_dir, filename='checkpoint.pth.tar'):
@@ -237,8 +237,8 @@ if resume:
     logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title, resume=True)
 else:
     print('==> GAIRAT')
-    logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title)
-    logger_test.set_names(['Epoch', 'Natural Test Acc', 'PGD20 Acc'])
+    #logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title)
+    #logger_test.set_names(['Epoch', 'Natural Test Acc', 'PGD20 Acc'])
 
 ## Training get started
 test_nat_acc = 0
@@ -266,7 +266,7 @@ for epoch in range(start_epoch, args.epochs):
         test_pgd20_acc)
         )
          
-    logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
+    #logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
     '''
     # Save the best checkpoint
     if test_pgd20_acc > best_acc:
@@ -288,4 +288,4 @@ for epoch in range(start_epoch, args.epochs):
                 'optimizer' : optimizer.state_dict(),
             })
     '''
-logger_test.close()
+#logger_test.close()
