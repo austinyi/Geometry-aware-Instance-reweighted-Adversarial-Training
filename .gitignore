@@ -1,0 +1,8 @@
+setup/__pycache__/
+__pycache__/
+.DS_Store
+.idea/
+models/.DS_Store
+models/cifar10/
+models/__pycache__/
+utils/__pycache__/
