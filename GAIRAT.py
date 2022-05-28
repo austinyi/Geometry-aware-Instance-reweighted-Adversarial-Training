@@ -205,9 +205,9 @@ transform_test = transforms.Compose([
 
 if args.dataset == "cifar10":
     trainset = torchvision.datasets.CIFAR10(root='/data', train=True, download=True, transform=transform_train)
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True, num_workers=2)
     testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False, num_workers=2)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 if args.dataset == "svhn":
     trainset = torchvision.datasets.SVHN(root='./data/SVHN', split='train', download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
@@ -254,7 +254,7 @@ for epoch in range(start_epoch, args.epochs):
 
     # Evalutions similar to DAT.
     _, test_nat_acc = attack.eval_clean(model, test_loader)
-    _, test_pgd20_acc = attack.eval_robust(model, test_loader, perturb_steps=20, epsilon=0.031, step_size=0.031 / 4,loss_fn="cent", category="Madry", random=True)
+    _, test_pgd20_acc = attack.eval_robust(model, test_loader, perturb_steps=7, epsilon=0.031, step_size=0.007,loss_fn="cent", category="Madry", random=True)
 
 
     print(
