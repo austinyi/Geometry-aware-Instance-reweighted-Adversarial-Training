@@ -18,22 +18,24 @@ parser.add_argument('--epsilon', type=float, default=0.031, help='perturbation b
 parser.add_argument('--num-steps', type=int, default=10, help='maximum perturbation step K')
 parser.add_argument('--step-size', type=float, default=0.007, help='step size')
 parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed')
-parser.add_argument('--net', type=str, default="WRN",help="decide which network to use,choose from smallcnn,resnet18,WRN")
+parser.add_argument('--net', type=str, default="WRN",
+                    help="decide which network to use,choose from smallcnn,resnet18,WRN")
 parser.add_argument('--dataset', type=str, default="cifar10", help="choose from cifar10,svhn,cifar100,mnist")
-parser.add_argument('--random',type=bool,default=True,help="whether to initiat adversarial sample with random noise")
-parser.add_argument('--depth',type=int,default=32,help='WRN depth')
-parser.add_argument('--width-factor',type=int,default=10,help='WRN width factor')
-parser.add_argument('--drop-rate',type=float,default=0.0, help='WRN drop rate')
-parser.add_argument('--resume',type=str,default=None,help='whether to resume training')
-parser.add_argument('--out-dir',type=str,default='./GAIRAT_result',help='dir of output')
-parser.add_argument('--lr-schedule', default='piecewise', choices=['superconverge', 'piecewise', 'linear', 'onedrop', 'multipledecay', 'cosine'])
+parser.add_argument('--random', type=bool, default=True, help="whether to initiat adversarial sample with random noise")
+parser.add_argument('--depth', type=int, default=32, help='WRN depth')
+parser.add_argument('--width-factor', type=int, default=10, help='WRN width factor')
+parser.add_argument('--drop-rate', type=float, default=0.0, help='WRN drop rate')
+parser.add_argument('--resume', type=str, default=None, help='whether to resume training')
+parser.add_argument('--out-dir', type=str, default='./GAIRAT_result', help='dir of output')
+parser.add_argument('--lr-schedule', default='piecewise',
+                    choices=['superconverge', 'piecewise', 'linear', 'onedrop', 'multipledecay', 'cosine'])
 parser.add_argument('--lr-max', default=0.1, type=float)
 parser.add_argument('--lr-one-drop', default=0.01, type=float)
 parser.add_argument('--lr-drop-epoch', default=100, type=int)
-parser.add_argument('--Lambda',type=str, default='-1.0', help='parameter for GAIR')
-parser.add_argument('--Lambda_max',type=float, default=float('inf'), help='max Lambda')
+parser.add_argument('--Lambda', type=str, default='-1.0', help='parameter for GAIR')
+parser.add_argument('--Lambda_max', type=float, default=float('inf'), help='max Lambda')
 parser.add_argument('--Lambda_schedule', default='fixed', choices=['linear', 'piecewise', 'fixed'])
-parser.add_argument('--weight_assignment_function', default='Tanh', choices=['Discrete','Sigmoid','Tanh'])
+parser.add_argument('--weight_assignment_function', default='Tanh', choices=['Discrete', 'Sigmoid', 'Tanh'])
 parser.add_argument('--begin_epoch', type=int, default=60, help='when to use GAIR')
 args = parser.parse_args()
 
@@ -65,9 +67,9 @@ if args.net == "preactresnet18":
     net = "preactresnet18"
 if args.net == "WRN":
     model = Wide_ResNet_Madry(depth=depth, num_classes=10, widen_factor=width_factor, dropRate=drop_rate).cuda()
-    net = "WRN{}-{}-dropout{}".format(depth,width_factor,drop_rate)
+    net = "WRN{}-{}-dropout{}".format(depth, width_factor, drop_rate)
 
-#model = torch.nn.DataParallel(model)
+# model = torch.nn.DataParallel(model)
 optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=momentum, weight_decay=weight_decay)
 
 # Learning schedules
@@ -81,7 +83,7 @@ elif args.lr_schedule == 'piecewise':
                 return args.lr_max
             elif t / args.epochs < 0.75:
                 return args.lr_max / 10.
-            elif t / args.epochs < (11/12):
+            elif t / args.epochs < (11 / 12):
                 return args.lr_max / 100.
             else:
                 return args.lr_max / 200.
@@ -94,7 +96,8 @@ elif args.lr_schedule == 'piecewise':
             else:
                 return args.lr_max / 100.
 elif args.lr_schedule == 'linear':
-    lr_schedule = lambda t: np.interp([t], [0, args.epochs // 3, args.epochs * 2 // 3, args.epochs], [args.lr_max, args.lr_max, args.lr_max / 10, args.lr_max / 100])[0]
+    lr_schedule = lambda t: np.interp([t], [0, args.epochs // 3, args.epochs * 2 // 3, args.epochs],
+                                      [args.lr_max, args.lr_max, args.lr_max / 10, args.lr_max / 100])[0]
 elif args.lr_schedule == 'onedrop':
     def lr_schedule(t):
         if t < args.lr_drop_epoch:
@@ -103,13 +106,14 @@ elif args.lr_schedule == 'onedrop':
             return args.lr_one_drop
 elif args.lr_schedule == 'multipledecay':
     def lr_schedule(t):
-        return args.lr_max - (t//(args.epochs//10))*(args.lr_max/10)
-elif args.lr_schedule == 'cosine': 
-    def lr_schedule(t): 
+        return args.lr_max - (t // (args.epochs // 10)) * (args.lr_max / 10)
+elif args.lr_schedule == 'cosine':
+    def lr_schedule(t):
         return args.lr_max * 0.5 * (1 + np.cos(t / args.epochs * np.pi))
 
+
 # Store path
-#if not os.path.exists(out_dir):
+# if not os.path.exists(out_dir):
 #    os.makedirs(out_dir)
 
 # Save checkpoint
@@ -117,9 +121,36 @@ def save_checkpoint(state, checkpoint=out_dir, filename='checkpoint.pth.tar'):
     filepath = os.path.join(checkpoint, filename)
     torch.save(state, filepath)
 
+def testClassifier(test_loader, model, use_cuda=True, batch_size=100):
+    model.eval()
+    correct_cnt = 0
+    total_cnt = 0
+    for batch_idx, (x, target) in enumerate(test_loader):
+        if use_cuda:
+            x, target = x.cuda(), target.cuda()
+        x, target = Variable(x), Variable(target)
+        out = model(x)
+        _, pred_label = torch.max(out.data, 1)
+        total_cnt += x.data.size()[0]
+        correct_cnt += (pred_label == target.data).sum()
+    acc = float(correct_cnt.double()/total_cnt)
+    print("The prediction accuracy on testset is {}".format(acc))
+    return acc
+
+
+def testattack(classifier, test_loader, args, use_cuda=True):
+    classifier.eval()
+    adversary = LinfPGDAttack(classifier, epsilon=args['epsilon'], k=args['num_k'], a=args['alpha'])
+    param = {
+    'test_batch_size': args['batch_size'],
+    'epsilon': args['epsilon'],
+    }
+    acc = attack_over_test_data(classifier, adversary, param, test_loader, use_cuda=use_cuda)
+    return acc
+
+
 # Get adversarially robust network
 def train(epoch, model, train_loader, optimizer, Lambda):
-    
     lr = 0
     num_data = 0
     train_robust_loss = 0
@@ -128,15 +159,16 @@ def train(epoch, model, train_loader, optimizer, Lambda):
 
         loss = 0
         data, target = data.cuda(), target.cuda()
-        
+
         # Get adversarial data and geometry value
-        x_adv, Kappa = attack.GA_PGD(model,data,target,args.epsilon,args.step_size,args.num_steps,loss_fn="cent",category="Madry",rand_init=True)
+        x_adv, Kappa = attack.GA_PGD(model, data, target, args.epsilon, args.step_size, args.num_steps, loss_fn="cent",
+                                     category="Madry", rand_init=True)
 
         model.train()
         lr = lr_schedule(epoch + 1)
         optimizer.param_groups[0].update(lr=lr)
         optimizer.zero_grad()
-        
+
         logit = model(x_adv)
 
         if (epoch + 1) >= args.begin_epoch:
@@ -147,17 +179,18 @@ def train(epoch, model, train_loader, optimizer, Lambda):
             loss = loss.mul(normalized_reweight).mean()
         else:
             loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
-        
+
         train_robust_loss += loss.item() * len(x_adv)
-        
+
         loss.backward()
         optimizer.step()
-        
+
         num_data += len(data)
 
     train_robust_loss = train_robust_loss / num_data
 
     return train_robust_loss, lr
+
 
 # Adjust lambda for weight assignment using epoch
 def adjust_Lambda(epoch):
@@ -167,14 +200,14 @@ def adjust_Lambda(epoch):
         Lambda = args.Lambda_max
         if args.Lambda_schedule == 'linear':
             if epoch >= 60:
-                Lambda = args.Lambda_max - (epoch/args.epochs) * (args.Lambda_max - Lam)
+                Lambda = args.Lambda_max - (epoch / args.epochs) * (args.Lambda_max - Lam)
         elif args.Lambda_schedule == 'piecewise':
             if epoch >= 60:
                 Lambda = Lam
             elif epoch >= 90:
-                Lambda = Lam-1.0
+                Lambda = Lam - 1.0
             elif epoch >= 110:
-                Lambda = Lam-1.5
+                Lambda = Lam - 1.5
         elif args.Lambda_schedule == 'fixed':
             if epoch >= 60:
                 Lambda = Lam
@@ -183,16 +216,17 @@ def adjust_Lambda(epoch):
         Lambda = args.Lambda_max
         if args.Lambda_schedule == 'linear':
             if epoch >= 30:
-                Lambda = args.Lambda_max - (epoch/args.epochs) * (args.Lambda_max - Lam)
+                Lambda = args.Lambda_max - (epoch / args.epochs) * (args.Lambda_max - Lam)
         elif args.Lambda_schedule == 'piecewise':
             if epoch >= 30:
                 Lambda = Lam
             elif epoch >= 60:
-                Lambda = Lam-2.0
+                Lambda = Lam - 2.0
         elif args.Lambda_schedule == 'fixed':
             if epoch >= 30:
                 Lambda = Lam
     return Lambda
+
 
 # Setup data loader
 transform_train = transforms.Compose([
@@ -211,7 +245,7 @@ if args.dataset == "cifar10":
     test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
 
 
-# Resume 
+# Resume
 title = 'GAIRAT'
 best_acc = 0
 start_epoch = 0
@@ -229,36 +263,34 @@ if resume:
     logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title, resume=True)
 else:
     print('==> GAIRAT')
-    #logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title)
-    #logger_test.set_names(['Epoch', 'Natural Test Acc', 'PGD20 Acc'])
+    # logger_test = Logger(os.path.join(out_dir, 'log_results.txt'), title=title)
+    # logger_test.set_names(['Epoch', 'Natural Test Acc', 'PGD20 Acc'])
 
 ## Training get started
 test_nat_acc = 0
 test_pgd20_acc = 0
+use_cuda = torch.cuda.is_available()
 
 for epoch in range(start_epoch, args.epochs):
-    
     # Get lambda
     Lambda = adjust_Lambda(epoch + 1)
-    
+
     # Adversarial training
     train_robust_loss, lr = train(epoch, model, train_loader, optimizer, Lambda)
 
-    # Evalutions similar to DAT.
-    _, test_nat_acc = attack.eval_clean(model, test_loader)
-    _, test_pgd20_acc = attack.eval_robust(model, test_loader, perturb_steps=7, epsilon=0.031, step_size=0.007,loss_fn="cent", category="Madry", random=True)
-
+    testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=100)
+    testattack(model, test_loader, args, use_cuda=use_cuda)
 
     print(
-        'Epoch: [%d | %d] | Learning Rate: %f | Natural Test Acc %.2f | PGD20 Test Acc %.2f |\n' % (
+            'Epoch: [%d | %d] | Learning Rate: %f | Natural Test Acc %.2f | PGD20 Test Acc %.2f |\n' % (
         epoch,
         args.epochs,
         lr,
         test_nat_acc,
         test_pgd20_acc)
-        )
-         
-    #logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
+    )
+
+    # logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
     '''
     # Save the best checkpoint
     if test_pgd20_acc > best_acc:
@@ -280,4 +312,4 @@ for epoch in range(start_epoch, args.epochs):
                 'optimizer' : optimizer.state_dict(),
             })
     '''
-#logger_test.close()
+# logger_test.close()
