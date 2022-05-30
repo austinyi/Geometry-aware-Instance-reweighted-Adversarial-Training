@@ -140,10 +140,10 @@ def testClassifier(test_loader, model, use_cuda=True, batch_size=100):
 
 def testattack(classifier, test_loader, args, use_cuda=True):
     classifier.eval()
-    adversary = LinfPGDAttack(classifier, epsilon=args['epsilon'], k=args['num_k'], a=args['alpha'])
+    adversary = LinfPGDAttack(classifier, epsilon=args.epsilon, k=args.num_steps, a=args.step_size)
     param = {
-    'test_batch_size': args['batch_size'],
-    'epsilon': args['epsilon'],
+    'test_batch_size': 100,
+    'epsilon': args.epsilon,
     }
     acc = attack_over_test_data(classifier, adversary, param, test_loader, use_cuda=use_cuda)
     return acc
