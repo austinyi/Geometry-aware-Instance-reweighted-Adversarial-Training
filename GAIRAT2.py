@@ -170,7 +170,7 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
         for idx, (x, target) in enumerate(train_loader):
             x, target = to_var(x), to_var(target)
 
-            x_adv, Kappa = attack.GA_PGD(model, data, target, args.epsilon, args.step_size, args.num_steps,
+            x_adv, Kappa = attack.GA_PGD(model, x, target, args.epsilon, args.step_size, args.num_steps,
                                          loss_fn="cent",
                                          category="Madry", rand_init=True)
 
@@ -195,7 +195,7 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
             loss.backward()
             optimizer.step()
 
-            num_data += len(data)
+            num_data += len(x)
 
     return model
 
