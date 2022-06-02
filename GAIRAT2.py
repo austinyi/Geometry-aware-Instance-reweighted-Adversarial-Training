@@ -193,8 +193,6 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
             loss.backward()
             optimizer.step()
 
-            num_data += len(x)
-
     return model
 
 
