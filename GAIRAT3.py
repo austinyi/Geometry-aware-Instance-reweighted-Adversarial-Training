@@ -141,7 +141,7 @@ def main(args):
         net = "preactresnet18"
     if args.net == "WRN":
         model = Wide_ResNet_Madry(depth=args.depth, num_classes=10, widen_factor=args.width_factor, dropRate=args.drop_rate).cuda()
-        net = "WRN{}-{}-dropout{}".format(depth, width_factor, drop_rate)
+        net = "WRN{}-{}-dropout{}".format(args.depth, args.width_factor, args.drop_rate)
 
     # Setup data loader
     transform_train = transforms.Compose([
