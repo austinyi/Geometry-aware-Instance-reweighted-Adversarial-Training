@@ -285,7 +285,7 @@ testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=args['batch_siz
 testattack(model, test_loader, args, use_cuda=use_cuda)
 
     # logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
-    '''
+'''
     # Save the best checkpoint
     if test_pgd20_acc > best_acc:
         best_acc = test_pgd20_acc
@@ -305,5 +305,5 @@ testattack(model, test_loader, args, use_cuda=use_cuda)
                 'test_pgd20_acc': test_pgd20_acc,
                 'optimizer' : optimizer.state_dict(),
             })
-    '''
+'''
 # logger_test.close()
