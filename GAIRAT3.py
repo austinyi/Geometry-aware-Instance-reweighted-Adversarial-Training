@@ -111,12 +111,12 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
 
             if (epoch + 1) >= args.begin_epoch:
                 Kappa = Kappa.cuda()
-                loss = nn.CrossEntropyLoss(reduce=False)(logit, target)
+                loss = nn.CrossEntropyLoss(logit, target)
                 # Calculate weight assignment according to geometry value
                 normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
                 loss = loss.mul(normalized_reweight).mean()
             else:
-                loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
+                loss = nn.CrossEntropyLoss(logit, target)
 
             loss.backward()
             optimizer.step()
@@ -128,21 +128,6 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
 def main(args):
     use_cuda = torch.cuda.is_available()
     print('==> Loading data..')
-    # Training settings
-    seed = args.seed
-    momentum = args.momentum
-    weight_decay = args.weight_decay
-    depth = args.depth
-    width_factor = args.width_factor
-    drop_rate = args.drop_rate
-    resume = args.resume
-    out_dir = args.out_dir
-
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cudnn.deterministic = True
 
     # Models and optimizer
     if args.net == "smallcnn":
@@ -155,7 +140,7 @@ def main(args):
         model = PreActResNet18().cuda()
         net = "preactresnet18"
     if args.net == "WRN":
-        model = Wide_ResNet_Madry(depth=depth, num_classes=10, widen_factor=width_factor, dropRate=drop_rate).cuda()
+        model = Wide_ResNet_Madry(depth=args.depth, num_classes=10, widen_factor=args.width_factor, dropRate=args.drop_rate).cuda()
         net = "WRN{}-{}-dropout{}".format(depth, width_factor, drop_rate)
 
     # Setup data loader
@@ -253,7 +238,12 @@ if __name__ == "__main__":
 
     print(args)
 
-
+    seed = args.seed
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = True
     main(args)
 
     # logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
