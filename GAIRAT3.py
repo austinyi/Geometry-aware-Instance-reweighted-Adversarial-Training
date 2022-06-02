@@ -115,7 +115,7 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
                 normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
                 loss = loss.mul(normalized_reweight).mean()
             else:
-                loss = nn.CrossEntropyLoss(logit, target)
+                loss = train_criterion(model(x_adv), target)
 
             loss.backward()
             optimizer.step()
