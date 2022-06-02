@@ -85,7 +85,7 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
         #model = torch.nn.DataParallel(model)
 
     train_criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=momentum, weight_decay=weight_decay)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
 
     for epoch in range(args.epochs):
         # training
