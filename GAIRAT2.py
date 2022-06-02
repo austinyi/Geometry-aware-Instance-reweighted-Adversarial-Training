@@ -277,7 +277,7 @@ test_pgd20_acc = 0
 use_cuda = torch.cuda.is_available()
 
 model = trainClassifier(args, model, train_loader, test_loader, use_cuda=use_cuda)
-testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=args['batch_size'])
+testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=100)
 testattack(model, test_loader, args, use_cuda=use_cuda)
 
     # logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
