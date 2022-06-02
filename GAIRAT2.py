@@ -190,8 +190,6 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
             else:
                 loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
 
-            train_robust_loss += loss.item() * len(x_adv)
-
             loss.backward()
             optimizer.step()
 
