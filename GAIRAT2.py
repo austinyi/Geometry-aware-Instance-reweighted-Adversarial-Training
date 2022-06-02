@@ -158,8 +158,7 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
     train_criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=momentum, weight_decay=weight_decay)
 
-
-    for epoch in range(args['num_epoch']):
+    for epoch in range(args.epochs):
         # training
         ave_loss = 0
         step = 0
