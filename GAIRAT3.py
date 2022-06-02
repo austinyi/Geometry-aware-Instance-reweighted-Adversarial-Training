@@ -84,9 +84,9 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
         model = model.cuda()
         #model = torch.nn.DataParallel(model)
 
-    train_criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
-
+    train_criterion = nn.CrossEntropyLoss()
+    
     for epoch in range(args.epochs):
         # training
         ave_loss = 0
@@ -107,11 +107,10 @@ def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
             optimizer.param_groups[0].update(lr=lr)
             optimizer.zero_grad()
 
-            logit = model(x_adv)
 
             if (epoch + 1) >= args.begin_epoch:
                 Kappa = Kappa.cuda()
-                loss = nn.CrossEntropyLoss(logit, target)
+                loss = train_criterion(model(x_adv), target)
                 # Calculate weight assignment according to geometry value
                 normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
                 loss = loss.mul(normalized_reweight).mean()
