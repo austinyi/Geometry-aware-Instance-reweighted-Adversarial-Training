@@ -149,47 +149,56 @@ def testattack(classifier, test_loader, args, use_cuda=True):
     return acc
 
 
-# Get adversarially robust network
-def train(epoch, model, train_loader, optimizer, Lambda):
-    lr = 0
-    num_data = 0
-    train_robust_loss = 0
 
-    for batch_idx, (data, target) in enumerate(train_loader):
+def trainClassifier(args, model, result_dir, train_loader, test_loader, use_cuda=True):
+    if use_cuda:
+        model = model.cuda()
+        #model = torch.nn.DataParallel(model)
 
-        loss = 0
-        data, target = data.cuda(), target.cuda()
+    train_criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=momentum, weight_decay=weight_decay)
 
-        # Get adversarial data and geometry value
-        x_adv, Kappa = attack.GA_PGD(model, data, target, args.epsilon, args.step_size, args.num_steps, loss_fn="cent",
-                                     category="Madry", rand_init=True)
 
-        model.train()
-        lr = lr_schedule(epoch + 1)
-        optimizer.param_groups[0].update(lr=lr)
-        optimizer.zero_grad()
+    for epoch in range(args['num_epoch']):
+        # training
+        ave_loss = 0
+        step = 0
+        # Get lambda
+        Lambda = adjust_Lambda(epoch + 1)
+        #num_data = 0
+        #train_robust_loss = 0
+        for idx, x, target in tqdm(train_loader):
+            x, target = to_var(x), to_var(target)
 
-        logit = model(x_adv)
+            x_adv, Kappa = attack.GA_PGD(model, data, target, args.epsilon, args.step_size, args.num_steps,
+                                         loss_fn="cent",
+                                         category="Madry", rand_init=True)
 
-        if (epoch + 1) >= args.begin_epoch:
-            Kappa = Kappa.cuda()
-            loss = nn.CrossEntropyLoss(reduce=False)(logit, target)
-            # Calculate weight assignment according to geometry value
-            normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
-            loss = loss.mul(normalized_reweight).mean()
-        else:
-            loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
+            model.train()
+            lr = lr_schedule(epoch + 1)
+            optimizer.param_groups[0].update(lr=lr)
+            optimizer.zero_grad()
 
-        train_robust_loss += loss.item() * len(x_adv)
+            logit = model(x_adv)
 
-        loss.backward()
-        optimizer.step()
+            if (epoch + 1) >= args.begin_epoch:
+                Kappa = Kappa.cuda()
+                loss = nn.CrossEntropyLoss(reduce=False)(logit, target)
+                # Calculate weight assignment according to geometry value
+                normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
+                loss = loss.mul(normalized_reweight).mean()
+            else:
+                loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
 
-        num_data += len(data)
+            train_robust_loss += loss.item() * len(x_adv)
 
-    train_robust_loss = train_robust_loss / num_data
+            loss.backward()
+            optimizer.step()
 
-    return train_robust_loss, lr
+            num_data += len(data)
+
+    return model
+
 
 
 # Adjust lambda for weight assignment using epoch
@@ -240,10 +249,9 @@ transform_test = transforms.Compose([
 
 if args.dataset == "cifar10":
     trainset = torchvision.datasets.CIFAR10(root='/data', train=True, download=True, transform=transform_train)
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True, num_workers=2)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True)
     testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
-
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False)
 
 
 # Resume
@@ -272,24 +280,9 @@ test_nat_acc = 0
 test_pgd20_acc = 0
 use_cuda = torch.cuda.is_available()
 
-for epoch in range(start_epoch, args.epochs):
-    # Get lambda
-    Lambda = adjust_Lambda(epoch + 1)
-
-    # Adversarial training
-    train_robust_loss, lr = train(epoch, model, train_loader, optimizer, Lambda)
-
-    testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=100)
-    testattack(model, test_loader, args, use_cuda=use_cuda)
-
-    print(
-            'Epoch: [%d | %d] | Learning Rate: %f | Natural Test Acc %.2f | PGD20 Test Acc %.2f |\n' % (
-        epoch,
-        args.epochs,
-        lr,
-        test_nat_acc,
-        test_pgd20_acc)
-    )
+model = trainClassifier(args, model, result_dir, train_loader, test_loader, use_cuda=use_cuda)
+testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=args['batch_size'])
+testattack(model, test_loader, args, use_cuda=use_cuda)
 
     # logger_test.append([epoch + 1, test_nat_acc, test_pgd20_acc])
     '''
