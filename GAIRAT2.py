@@ -150,7 +150,7 @@ def testattack(classifier, test_loader, args, use_cuda=True):
 
 
 
-def trainClassifier(args, model, result_dir, train_loader, test_loader, use_cuda=True):
+def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
     if use_cuda:
         model = model.cuda()
         #model = torch.nn.DataParallel(model)
@@ -280,7 +280,7 @@ test_nat_acc = 0
 test_pgd20_acc = 0
 use_cuda = torch.cuda.is_available()
 
-model = trainClassifier(args, model, result_dir, train_loader, test_loader, use_cuda=use_cuda)
+model = trainClassifier(args, model, train_loader, test_loader, use_cuda=use_cuda)
 testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=args['batch_size'])
 testattack(model, test_loader, args, use_cuda=use_cuda)
 
