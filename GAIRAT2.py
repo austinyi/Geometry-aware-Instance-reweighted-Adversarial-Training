@@ -9,6 +9,7 @@ import numpy as np
 import attack_generator as attack
 from utils import Logger
 from setup_pgd_adaptive import to_var, adv_train, pred_batch, LinfPGDAttack, attack_over_test_data
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='GAIRAT: Geometry-aware instance-dependent adversarial training')
 parser.add_argument('--epochs', type=int, default=120, metavar='N', help='number of epochs to train')
