@@ -125,7 +125,7 @@ def testattack(classifier, test_loader, args, use_cuda=True):
 def main(args):
     use_cuda = torch.cuda.is_available()
     print('==> Loading data..')
-    
+
     # Setup data loader
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     print(args)
 
     seed = args.seed
-    
+
     torch.manual_seed(seed)
     np.random.seed(seed)
     torch.cuda.manual_seed_all(seed)
