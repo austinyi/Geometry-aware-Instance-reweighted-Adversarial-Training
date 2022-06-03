@@ -49,6 +49,49 @@ def adjust_Lambda(epoch):
     return Lambda
 
 
+def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
+    if use_cuda:
+        model = model.cuda()
+        # model = torch.nn.DataParallel(model)
+
+    optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=0.9, weight_decay=args.weight_decay)
+    train_criterion = nn.CrossEntropyLoss()
+
+    for epoch in range(args.epochs):
+        # training
+        ave_loss = 0
+        step = 0
+        # Get lambda
+        Lambda = adjust_Lambda(epoch + 1)
+        # num_data = 0
+        # train_robust_loss = 0
+        for idx, (x, target) in enumerate(train_loader):
+            x, target = to_var(x), to_var(target)
+
+            x_adv, Kappa = attack.GA_PGD(model, x, target, args.epsilon, args.step_size, args.num_steps,
+                                         loss_fn="cent",
+                                         category="Madry", rand_init=True)
+                
+            model.train()
+            lr = lr_schedule(epoch + 1)
+            optimizer.param_groups[0].update(lr=lr)
+            optimizer.zero_grad()
+
+            if (epoch + 1) >= args.begin_epoch:
+                Kappa = Kappa.cuda()
+                loss = train_criterion(model(x_adv), target)
+                # Calculate weight assignment according to geometry value
+                normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
+                loss = loss.mul(normalized_reweight).mean()
+            else:
+                loss = train_criterion(model(x_adv), target)
+
+            loss.backward()
+            optimizer.step()
+            
+        acc = testClassifier(test_loader, model, use_cuda=use_cuda, batch_size=100)
+        print("Epoch {} test accuracy: {:.3f}".format(epoch, acc))
+    return model
 
 def testClassifier(test_loader, model, use_cuda=True, batch_size=100):
     model.eval()
@@ -79,69 +122,10 @@ def testattack(classifier, test_loader, args, use_cuda=True):
 
 
 
-def trainClassifier(args, model, train_loader, test_loader, use_cuda=True):
-    if use_cuda:
-        model = model.cuda()
-        #model = torch.nn.DataParallel(model)
-
-    optimizer = optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
-    train_criterion = nn.CrossEntropyLoss()
-    
-    for epoch in range(args.epochs):
-        # training
-        ave_loss = 0
-        step = 0
-        # Get lambda
-        Lambda = adjust_Lambda(epoch + 1)
-        #num_data = 0
-        #train_robust_loss = 0
-        for idx, (x, target) in enumerate(train_loader):
-            x, target = to_var(x), to_var(target)
-
-            x_adv, Kappa = attack.GA_PGD(model, x, target, args.epsilon, args.step_size, args.num_steps,
-                                         loss_fn="cent",
-                                         category="Madry", rand_init=True)
-
-            model.train()
-            lr = lr_schedule(epoch + 1)
-            optimizer.param_groups[0].update(lr=lr)
-            optimizer.zero_grad()
-
-
-            if (epoch + 1) >= args.begin_epoch:
-                Kappa = Kappa.cuda()
-                loss = train_criterion(model(x_adv), target)
-                # Calculate weight assignment according to geometry value
-                normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
-                loss = loss.mul(normalized_reweight).mean()
-            else:
-                loss = train_criterion(model(x_adv), target)
-
-            loss.backward()
-            optimizer.step()
-
-    return model
-
-
-
 def main(args):
     use_cuda = torch.cuda.is_available()
     print('==> Loading data..')
-
-    # Models and optimizer
-    if args.net == "smallcnn":
-        model = SmallCNN().cuda()
-        net = "smallcnn"
-    if args.net == "resnet18":
-        model = ResNet18().cuda()
-        net = "resnet18"
-    if args.net == "preactresnet18":
-        model = PreActResNet18().cuda()
-        net = "preactresnet18"
-    if args.net == "WRN":
-        model = Wide_ResNet_Madry(depth=args.depth, num_classes=10, widen_factor=args.width_factor, dropRate=args.drop_rate).cuda()
-        net = "WRN{}-{}-dropout{}".format(args.depth, args.width_factor, args.drop_rate)
-
+    
     # Setup data loader
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
@@ -158,6 +142,9 @@ def main(args):
         testset = torchvision.datasets.CIFAR10(root='/data', train=False, download=True, transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False)
 
+    if args.net == "WRN":
+        model = Wide_ResNet_Madry(depth=args.depth, num_classes=10, widen_factor=args.width_factor,
+                                  dropRate=args.drop_rate).cuda()
 
     print('==> Training starts..')
     model = trainClassifier(args, model, train_loader, test_loader, use_cuda=use_cuda)
@@ -171,7 +158,7 @@ if __name__ == "__main__":
     parser.add_argument('--weight-decay', '--wd', default=2e-4, type=float, metavar='W')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M', help='SGD momentum')
     parser.add_argument('--epsilon', type=float, default=0.031, help='perturbation bound')
-    parser.add_argument('--num-steps', type=int, default=10, help='maximum perturbation step K')
+    parser.add_argument('--num-steps', type=int, default=7, help='maximum perturbation step K')
     parser.add_argument('--step-size', type=float, default=0.007, help='step size')
     parser.add_argument('--seed', type=int, default=1, metavar='S', help='random seed')
     parser.add_argument('--net', type=str, default="WRN",
@@ -238,6 +225,7 @@ if __name__ == "__main__":
     print(args)
 
     seed = args.seed
+    
     torch.manual_seed(seed)
     np.random.seed(seed)
     torch.cuda.manual_seed_all(seed)
