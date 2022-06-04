@@ -139,6 +139,7 @@ def train(epoch, model, train_loader, optimizer, Lambda):
         
         logit = model(x_adv)
 
+'''
         if (epoch + 1) >= args.begin_epoch:
             Kappa = Kappa.cuda()
             loss = nn.CrossEntropyLoss(reduce=False)(logit, target)
@@ -146,7 +147,9 @@ def train(epoch, model, train_loader, optimizer, Lambda):
             normalized_reweight = GAIR(args.num_steps, Kappa, Lambda, args.weight_assignment_function)
             loss = loss.mul(normalized_reweight).mean()
         else:
-            loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
+'''
+
+        loss = nn.CrossEntropyLoss(reduce="mean")(logit, target)
         
         train_robust_loss += loss.item() * len(x_adv)
         
@@ -247,7 +250,6 @@ for epoch in range(start_epoch, args.epochs):
     # Evalutions similar to DAT.
     _, test_nat_acc = attack.eval_clean(model, test_loader)
     _, test_pgd20_acc = attack.eval_robust(model, test_loader, perturb_steps=7, epsilon=0.031, step_size=0.007,loss_fn="cent", category="Madry", random=True)
-
 
     print(
         'Epoch: [%d | %d] | Learning Rate: %f | Natural Test Acc %.2f | PGD20 Test Acc %.2f |\n' % (
